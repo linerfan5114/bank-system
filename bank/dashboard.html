@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>داشبورد کاربر</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 id="welcome-header">داشبورد بانک</h1>
+        <button class="btn" onclick="logout()" style="float: left;">خروج</button>
+        <hr>
+
+        <h2>اطلاعات حساب</h2>
+        <p>نام کاربری: <strong id="username-display"></strong></p>
+        <p>شماره حساب: <strong id="account-number-display"></strong></p>
+        <p>موجودی: <strong id="balance-display"></strong> ریال</p>
+
+        <hr>
+
+        <h2>انتقال وجه داخلی</h2>
+        <div id="transfer-message" class="message"></div>
+        <div class="form-group">
+            <label for="dest-acc">شماره حساب مقصد:</label>
+            <input type="text" id="dest-acc" required>
+        </div>
+        <div class="form-group">
+            <label for="transfer-amount">مبلغ (ریال):</label>
+            <input type="number" id="transfer-amount" required min="1">
+        </div>
+        <button class="btn" onclick="handleTransfer()">انتقال وجه</button>
+
+        <hr>
+
+        <h2>۱۰ تراکنش اخیر</h2>
+        <table id="transaction-table">
+            <thead>
+                <tr>
+                    <th>تاریخ</th>
+                    <th>نوع</th>
+                    <th>مبلغ</th>
+                    <th>شرح</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        const token = localStorage.getItem('bank_token');
+
+        function logout() {
+            localStorage.removeItem('bank_token');
+            localStorage.removeItem('bank_role');
+            window.location.href = 'index.html';
+        }
+
+        if (!token || localStorage.getItem('bank_role') === 'admin') {
+            logout();
+        }
+
+        async function fetchDashboardData() {
+            try {
+                const response = await fetch(`${API_URL}/user/dashboard`, {
+                    headers: { 'Authorization': token }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) { logout(); return; }
+                    throw new Error('خطا در دریافت اطلاعات داشبورد.');
+                }
+
+                const data = await response.json();
+                
+                // نمایش اطلاعات حساب
+                document.getElementById('username-display').textContent = data.username;
+                document.getElementById('account-number-display').textContent = data.account.accountNumber;
+                document.getElementById('balance-display').textContent = data.account.balance.toLocaleString('fa-IR');
+
+                // نمایش تراکنش‌ها
+                const tableBody = document.getElementById('transaction-table').querySelector('tbody');
+                tableBody.innerHTML = ''; // پاک کردن ردیف‌های قبلی
+                data.transactions.forEach(t => {
+                    const row = tableBody.insertRow();
+                    row.insertCell().textContent = t.timestamp;
+                    row.insertCell().textContent = t.type;
+                    row.insertCell().textContent = t.amount.toLocaleString('fa-IR');
+                    row.insertCell().textContent = t.description;
+                });
+
+            } catch (error) {
+                document.getElementById('welcome-header').textContent = `خطا: ${error.message}`;
+            }
+        }
+        
+        async function handleTransfer() {
+            const sourceAcc = document.getElementById('account-number-display').textContent;
+            const destAcc = document.getElementById('dest-acc').value;
+            const amount = document.getElementById('transfer-amount').value;
+            const msgEl = document.getElementById('transfer-message');
+            msgEl.className = 'message';
+            msgEl.textContent = 'در حال پردازش...';
+
+            try {
+                const response = await fetch(`${API_URL}/user/transfer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': token },
+                    body: JSON.stringify({ sourceAcc, destAcc, amount })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    msgEl.className = 'message success';
+                    msgEl.textContent = data.message;
+                    fetchDashboardData(); // به‌روزرسانی موجودی و تراکنش‌ها
+                } else {
+                    msgEl.className = 'message error';
+                    msgEl.textContent = data.message;
+                }
+            } catch (error) {
+                msgEl.className = 'message error';
+                msgEl.textContent = 'خطای شبکه در انتقال وجه.';
+            }
+        }
+
+        window.onload = fetchDashboardData;
+    </script>
+</body>
+</html>

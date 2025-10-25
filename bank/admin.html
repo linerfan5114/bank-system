@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>پنل ادمین - فول دسترسی</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>پنل ادمین (فول دسترسی)</h1>
+        <button class="btn" onclick="logout()" style="float: left;">خروج</button>
+        <hr>
+
+        <h2>۱. مدیریت کاربران و حساب‌ها</h2>
+        <div id="user-management-message" class="message"></div>
+        <table id="users-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>نام کاربری</th>
+                    <th>نقش</th>
+                    <th>شماره حساب</th>
+                    <th>موجودی</th>
+                    <th>فعال</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+
+        <hr>
+
+        <h2>۲. عملیات مالی مستقیم ادمین (واریز/برداشت)</h2>
+        <div id="direct-op-message" class="message"></div>
+        <div class="form-group">
+            <label for="op-acc">شماره حساب مقصد/مبدأ:</label>
+            <input type="text" id="op-acc" required>
+        </div>
+        <div class="form-group">
+            <label for="op-amount">مبلغ (ریال):</label>
+            <input type="number" id="op-amount" required min="1">
+        </div>
+        <button class="btn" onclick="handleDirectOp('DEPOSIT')">واریز مستقیم</button>
+        <button class="btn" onclick="handleDirectOp('WITHDRAWAL')" style="background-color: #dc3545;">برداشت مستقیم</button>
+
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        const token = localStorage.getItem('bank_token');
+        const role = localStorage.getItem('bank_role');
+
+        function logout() {
+            localStorage.removeItem('bank_token');
+            localStorage.removeItem('bank_role');
+            window.location.href = 'index.html';
+        }
+
+        if (!token || role !== 'admin') {
+            logout();
+        }
+
+        async function fetchUsers() {
+            try {
+                const response = await fetch(`${API_URL}/admin/users`, {
+                    headers: { 'Authorization': token }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 403) { document.getElementById('user-management-message').textContent = 'دسترسی ادمین ندارید!'; return; }
+                    throw new Error('خطا در دریافت لیست کاربران.');
+                }
+
+                const data = await response.json();
+                const tableBody = document.getElementById('users-table').querySelector('tbody');
+                tableBody.innerHTML = ''; 
+
+                data.users.forEach(u => {
+                    const row = tableBody.insertRow();
+                    row.insertCell().textContent = u.id;
+                    row.insertCell().textContent = u.username;
+                    row.insertCell().textContent = u.role;
+                    row.insertCell().textContent = u.accountNumber;
+                    row.insertCell().textContent = u.balance.toLocaleString('fa-IR');
+                    row.insertCell().textContent = u.isActive ? '✅' : '❌';
+                    
+                    const actionCell = row.insertCell();
+                    actionCell.className = 'admin-actions';
+                    
+                    if (u.id !== parseInt(token)) { // ادمین نتواند اکانت خودش را تغییر دهد
+                        const toggleBtn = document.createElement('button');
+                        toggleBtn.textContent = u.isActive ? 'غیرفعال‌سازی' : 'فعال‌سازی';
+                        toggleBtn.className = 'btn';
+                        toggleBtn.style.backgroundColor = u.isActive ? '#ffc107' : '#28a745';
+                        toggleBtn.onclick = () => toggleActive(u.id, !u.isActive);
+                        actionCell.appendChild(toggleBtn);
+                    }
+                });
+
+            } catch (error) {
+                document.getElementById('user-management-message').textContent = `خطا: ${error.message}`;
+            }
+        }
+        
+        async function toggleActive(userId, isActive) {
+            const msgEl = document.getElementById('user-management-message');
+            try {
+                const response = await fetch(`${API_URL}/admin/toggle_active`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': token },
+                    body: JSON.stringify({ userId, isActive })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    msgEl.className = 'message success';
+                    msgEl.textContent = data.message;
+                    fetchUsers();
+                } else {
+                    msgEl.className = 'message error';
+                    msgEl.textContent = data.message;
+                }
+            } catch (error) {
+                msgEl.className = 'message error';
+                msgEl.textContent = 'خطای شبکه در تغییر وضعیت.';
+            }
+        }
+
+        async function handleDirectOp(type) {
+            const targetAcc = document.getElementById('op-acc').value;
+            const amount = document.getElementById('op-amount').value;
+            const msgEl = document.getElementById('direct-op-message');
+            msgEl.className = 'message';
+            msgEl.textContent = 'در حال پردازش...';
+
+            try {
+                const response = await fetch(`${API_URL}/admin/direct_op`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': token },
+                    body: JSON.stringify({ targetAcc, amount, type })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    msgEl.className = 'message success';
+                    msgEl.textContent = data.message;
+                    fetchUsers(); // به‌روزرسانی موجودی در جدول
+                } else {
+                    msgEl.className = 'message error';
+                    msgEl.textContent = data.message;
+                }
+            } catch (error) {
+                msgEl.className = 'message error';
+                msgEl.textContent = 'خطای شبکه در عملیات مستقیم.';
+            }
+        }
+
+        window.onload = fetchUsers;
+    </script>
+</body>
+</html>

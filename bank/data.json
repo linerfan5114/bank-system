@@ -1,0 +1,78 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "admin",
+      "role": "admin",
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "username": "testuser",
+      "password": "123",
+      "role": "user",
+      "isActive": true
+    },
+    {
+      "id": 3,
+      "username": "mohammadi",
+      "password": "5114",
+      "email": "e@gmail.com",
+      "role": "user",
+      "isActive": true
+    }
+  ],
+  "accounts": [
+    {
+      "id": 100,
+      "userId": 1,
+      "accountNumber": "99999999",
+      "balance": 1000000
+    },
+    {
+      "id": 200,
+      "userId": 2,
+      "accountNumber": "11112222",
+      "balance": 2980050000
+    },
+    {
+      "id": 300,
+      "userId": 3,
+      "accountNumber": "44221806",
+      "balance": 10000000000000
+    }
+  ],
+  "transactions": [
+    {
+      "id": 1,
+      "sourceUserId": 1,
+      "destUserId": 2,
+      "type": "ADMIN_DEPOSIT",
+      "amount": 3000000000,
+      "timestamp": "۱۴۰۴/۷/۲۴, ۲۲:۰۹:۲۵",
+      "description": "واریز مستقیم توسط ادمین"
+    },
+    {
+      "id": 2,
+      "sourceUserId": 1,
+      "destUserId": 3,
+      "type": "ADMIN_DEPOSIT",
+      "amount": 10000000000000,
+      "timestamp": "۱۴۰۴/۷/۲۴, ۲۲:۲۰:۲۸",
+      "description": "واریز مستقیم توسط ادمین"
+    },
+    {
+      "id": 3,
+      "sourceUserId": 2,
+      "destUserId": 1,
+      "type": "ADMIN_WITHDRAWAL",
+      "amount": 20000000,
+      "timestamp": "۱۴۰۴/۷/۲۵, ۲۳:۱۲:۰۹",
+      "description": "برداشت مستقیم توسط ادمین"
+    }
+  ],
+  "nextUserId": 4,
+  "nextAccountId": 301,
+  "nextTransactionId": 4
+}

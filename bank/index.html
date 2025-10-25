@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>شبیه‌ساز بانک - ورود/ثبت نام</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>شبیه‌ساز بانک تستی</h1>
+        <h2>ورود</h2>
+        <div id="login-message" class="message"></div>
+        <div class="form-group">
+            <label for="login-username">نام کاربری:</label>
+            <input type="text" id="login-username" required>
+        </div>
+        <div class="form-group">
+            <label for="login-password">رمز عبور:</label>
+            <input type="password" id="login-password" required>
+        </div>
+        <button class="btn" onclick="handleLogin()">ورود</button>
+
+        <hr style="margin-top: 30px; margin-bottom: 30px;">
+
+        <h2>ثبت نام</h2>
+        <div id="register-message" class="message"></div>
+        <div class="form-group">
+            <label for="reg-username">نام کاربری:</label>
+            <input type="text" id="reg-username" required>
+        </div>
+        <div class="form-group">
+            <label for="reg-email">ایمیل:</label>
+            <input type="email" id="reg-email" required>
+        </div>
+        <div class="form-group">
+            <label for="reg-password">رمز عبور:</label>
+            <input type="password" id="reg-password" required>
+        </div>
+        <button class="btn" onclick="handleRegister()">ثبت نام</button>
+    </div>
+
+    <script>
+        // توابع کمکی برای ذخیره توکن
+        function setAuth(token, role) {
+            localStorage.setItem('bank_token', token);
+            localStorage.setItem('bank_role', role);
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            const msgEl = document.getElementById('login-message');
+            msgEl.className = 'message';
+            msgEl.textContent = 'در حال پردازش...';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    msgEl.className = 'message success';
+                    msgEl.textContent = 'ورود موفقیت‌آمیز!';
+                    setAuth(data.token, data.role);
+                    
+                    // هدایت به داشبورد مناسب
+                    if (data.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                } else {
+                    msgEl.className = 'message error';
+                    msgEl.textContent = data.message;
+                }
+            } catch (error) {
+                msgEl.className = 'message error';
+                msgEl.textContent = 'خطای شبکه در ورود.';
+            }
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const msgEl = document.getElementById('register-message');
+            msgEl.className = 'message';
+            msgEl.textContent = 'در حال پردازش...';
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    msgEl.className = 'message success';
+                    msgEl.textContent = `ثبت‌نام موفق! شماره حساب شما: ${data.account.accountNumber}`;
+                } else {
+                    msgEl.className = 'message error';
+                    msgEl.textContent = data.message;
+                }
+            } catch (error) {
+                msgEl.className = 'message error';
+                msgEl.textContent = 'خطای شبکه در ثبت‌نام.';
+            }
+        }
+
+        // بررسی اینکه کاربر قبلاً وارد شده است یا خیر
+        window.onload = () => {
+            const role = localStorage.getItem('bank_role');
+            if (role === 'admin') {
+                window.location.href = 'admin.html';
+            } else if (role === 'user') {
+                window.location.href = 'dashboard.html';
+            }
+        };
+    </script>
+</body>
+</html>
